@@ -1,0 +1,3 @@
+
+# Select the context path
+yq '.config.[].contexts.[] | select(.name == "work").path' examples/config.yaml

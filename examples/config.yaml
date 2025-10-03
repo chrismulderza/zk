@@ -1,0 +1,11 @@
+config:
+  - contexts:
+      - name: work
+        path: /tmp/work
+      - name: personal
+        path: /tmp/personal
+    templates:
+      - name: account
+        file: account.tmpl
+      - name: meeting
+        file: meeting.tmpl
