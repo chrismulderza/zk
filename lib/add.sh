@@ -23,5 +23,7 @@ EOF
     local default_alias="${type_pretty} > ${title_cased}"; local safe_default_alias; safe_default_alias=$(_sed_escape "$default_alias")
     local slug; slug=$(_slugify "$title"); local new_note_path="$ZETTEL_DIR/${id}-${slug}.md"; local date; date=$(date -I)
     sed -e "s/{{ID}}/$id/g" -e "s/{{TITLE}}/$safe_title/g" -e "s/{{TYPE}}/$type/g" -e "s/{{DEFAULT_ALIAS}}/$safe_default_alias/g" -e "s/{{DATE}}/$date/g" "$template_file" > "$new_note_path"
-    echo "Created new note: $new_note_path"; $EDITOR "$new_note_path"; _index_file "$new_note_path"
+    echo "Created new note: $new_note_path"
+    (cd "$ZETTEL_DIR" && $EDITOR "$new_note_path")
+    _index_file "$new_note_path"
 }

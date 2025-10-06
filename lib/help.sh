@@ -10,6 +10,7 @@ Commands:
   add [template]    Create a new note from a template.
   bookmark          Interactively capture a new bookmark.
   journal           Create or open today's daily journal note.
+  backlinks         Interactively find all backlinks for a given note.
   tags              List all unique tags and their usage count.
   edit              Find any note with fzf and edit it.
   find              Interactively search all note contents.
@@ -20,6 +21,7 @@ Commands:
       --type          Search by note type (e.g., bookmark).
       -f, --fulltext  Perform a full-text search.
   index             Rebuild the entire note index from scratch.
+  completion        Generate the bash completion script.
   help              Show this help message.
 EOF
 }

@@ -1,86 +1,97 @@
 #!/usr/bin/env bash
 
-#set -euo pipefail
-set -uo pipefail
-#set -x
+set -euo pipefail
 
 # --- CONFIGURATION SOURCING ---
 
-# 1. Define the default location for the user's config file.
-#    We use XDG_CONFIG_HOME if it's set, otherwise fallback to ~/.config.
+# 1. Define the default config file location based on XDG standards.
 : "${XDG_CONFIG_HOME:="$HOME/.config"}"
-ZK_CONFIG_FILE="$XDG_CONFIG_HOME/zk/config.sh"
+DEFAULT_ZK_CONFIG_FILE="$XDG_CONFIG_HOME/zk/config.sh"
 
-# 2. Source the user's configuration file if it exists.
+# 2. Determine the config file to use. Prioritize the ZK_CONFIG environment
+#    variable if it is set by the user; otherwise, use the default path.
+ZK_CONFIG_FILE="${ZK_CONFIG:-$DEFAULT_ZK_CONFIG_FILE}"
+
+# 3. Source the user's configuration file if it exists at the determined path.
 #    This allows user settings to be available before loading defaults.
 if [ -f "$ZK_CONFIG_FILE" ]; then
     source "$ZK_CONFIG_FILE"
 fi
 
-# 3. Find the directory where the script is located to reliably source library files.
-ZK_SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+# 4. Find the directory where the script is located to reliably source library files.
+ZK_SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
-# 4. Source the shared library of functions and variables.
+# 5. Source the shared library of functions and variables.
 #    Defaults are set here, but will not override user settings from config.sh
 source "$ZK_SCRIPT_DIR/lib/common.sh"
+
 
 # --- MAIN COMMAND ROUTER ---
 COMMAND="${1:-find}"
 shift || true
 
 case "$COMMAND" in
-init)
-    source "$ZK_SCRIPT_DIR/lib/init.sh"
-    cmd_init
-    ;;
-add)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/add.sh"
-    cmd_add "$@"
-    ;;
-bookmark)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/bookmark.sh"
-    cmd_bookmark
-    ;;
-journal)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/journal.sh"
-    cmd_journal
-    ;;
-tags)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/tags.sh"
-    cmd_tags
-    ;;
-edit)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/edit.sh"
-    cmd_edit
-    ;;
-find)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/find.sh"
-    cmd_find
-    ;;
-query)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/query.sh"
-    cmd_query "$@"
-    ;;
-index)
-    _ensure_initialized
-    source "$ZK_SCRIPT_DIR/lib/index.sh"
-    cmd_index
-    ;;
-help | --help | -h)
-    source "$ZK_SCRIPT_DIR/lib/help.sh"
-    cmd_help
-    ;;
-*)
-    echo "Error: Unknown command '$COMMAND'" >&2
-    source "$ZK_SCRIPT_DIR/lib/help.sh"
-    cmd_help
-    exit 1
-    ;;
+    init)
+        source "$ZK_SCRIPT_DIR/lib/init.sh"
+        cmd_init
+        ;;
+    add)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/add.sh"
+        cmd_add "$@"
+        ;;
+    bookmark)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/bookmark.sh"
+        cmd_bookmark
+        ;;
+    journal)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/journal.sh"
+        cmd_journal
+        ;;
+    tags)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/tags.sh"
+        cmd_tags
+        ;;
+    edit)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/edit.sh"
+        cmd_edit
+        ;;
+    find)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/find.sh"
+        cmd_find
+        ;;
+    query)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/query.sh"
+        cmd_query "$@"
+        ;;
+    index)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/index.sh"
+        cmd_index
+        ;;
+    backlinks)
+        _ensure_initialized
+        source "$ZK_SCRIPT_DIR/lib/backlinks.sh"
+        cmd_backlinks
+        ;;
+    completion)
+        source "$ZK_SCRIPT_DIR/lib/completion.sh"
+        cmd_completion
+        ;;
+    help|--help|-h)
+        source "$ZK_SCRIPT_DIR/lib/help.sh"
+        cmd_help
+        ;;
+    *)
+        echo "Error: Unknown command '$COMMAND'" >&2
+        source "$ZK_SCRIPT_DIR/lib/help.sh"
+        cmd_help
+        exit 1
+        ;;
 esac

@@ -1,1 +1,36 @@
-test/*
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw[a-z]
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Backup files
+*.bak
+*.tmp
+
+# Test/development Zettelkasten directories
+test-zettelkasten/
+.test-zettelkasten/
+
+# Local configuration overrides (if any)
+local.config.sh
+
+# AI assistant artifacts
+.gemini/
+.cursor/
+.copilot/
