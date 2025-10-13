@@ -6,7 +6,7 @@ setup() {
     setup_test_env
     
     # Source the command we are testing
-    source "$BATS_TEST_DIRNAME/../../lib/bookmark.sh"
+    source "$BATS_TEST_DIRNAME/../../cmd/bookmark.sh"
     
     # Mock dependencies
     mock_editor

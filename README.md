@@ -57,14 +57,14 @@ The system is built on a few core principles:
 ## Installation
 
 1.  **Clone or Download the Project**
-    Create a directory for the project and place all the files (`zk` and the `lib/` directory) inside it.
+    Create a directory for the project and place all the files (`zk` and the `cmd/` and `lib/` directories) inside it.
 
     ```bash
     git clone <repository_url> ~/zk-pkm
     cd ~/zk-pkm
     ```
 
-    (Or, simply create the `zk/` and `zk/lib/` directories and save all the files provided).
+    (Or, simply create the `zk/`, `zk/cmd/`, and `zk/lib/` directories and save all the files provided).
 
 2.  **Make the Main Script Executable**
 
@@ -125,11 +125,13 @@ Before you can start creating notes, you must initialize the system.
 ```
 zk/
 ├── zk          # The main executable script and command router.
-└── lib/        # Library of all command and helper functions.
-    ├── common.sh
-    ├── init.sh
-    ├── add.sh
-    # ... and all other command files.
+├── cmd/        # Command implementations.
+│   ├── init.sh
+│   ├── add.sh
+│   ├── journal.sh
+│   # ... and all other command files.
+└── lib/        # Shared library functions.
+    └── libzk.sh
 ```
 
 #### User Data & Configuration Structure
@@ -159,19 +161,19 @@ zk/
 
 | File                | Description                                                                                                    |
 | :------------------ | :------------------------------------------------------------------------------------------------------------- |
-| `zk`                | Main entry point. Parses the command and sources the appropriate file from `lib/`.                             |
-| `lib/common.sh`     | Core library. Contains all shared helper functions, default variables, and the crucial `_index_file` function. |
-| `lib/init.sh`       | Contains `cmd_init` for setting up the directory structure, database, and config file.                         |
-| `lib/add.sh`        | Contains `cmd_add` for creating new, general-purpose Zettelkasten notes.                                       |
-| `lib/journal.sh`    | Contains `cmd_journal` for the daily journaling workflow.                                                      |
-| `lib/bookmark.sh`   | Contains `cmd_bookmark` for the interactive bookmark capture workflow.                                         |
-| `lib/find.sh`       | Contains `cmd_find` for interactive, full-text search with `rg` and `fzf`.                                     |
-| `lib/query.sh`      | Contains `cmd_query` for searching the SQLite database by metadata (`tag`, `alias`, `type`).                   |
-| `lib/edit.sh`       | Contains `cmd_edit` for finding a note by filename and opening it for editing.                                 |
-| `lib/index.sh`      | Contains `cmd_index` for rebuilding the entire search index.                                                   |
-| `lib/tags.sh`       | Contains `cmd_tags` for listing all unique tags and their counts.                                              |
-| `lib/completion.sh` | Contains `cmd_completion` to generate the dynamic bash completion script.                                      |
-| `lib/help.sh`       | Contains `cmd_help` to display the usage information.                                                          |
+| `zk`                | Main entry point. Parses the command and sources the appropriate file from `cmd/`.                             |
+| `lib/libzk.sh`      | Core library. Contains all shared helper functions, default variables, and the crucial `_index_file` function. |
+| `cmd/init.sh`       | Contains `cmd_init` for setting up the directory structure, database, and config file.                         |
+| `cmd/add.sh`        | Contains `cmd_add` for creating new, general-purpose Zettelkasten notes.                                       |
+| `cmd/journal.sh`    | Contains `cmd_journal` for the daily journaling workflow.                                                      |
+| `cmd/bookmark.sh`   | Contains `cmd_bookmark` for the interactive bookmark capture workflow.                                         |
+| `cmd/find.sh`       | Contains `cmd_find` for interactive, full-text search with `rg` and `fzf`.                                     |
+| `cmd/query.sh`      | Contains `cmd_query` for searching the SQLite database by metadata (`tag`, `alias`, `type`).                   |
+| `cmd/edit.sh`       | Contains `cmd_edit` for finding a note by filename and opening it for editing.                                 |
+| `cmd/index.sh`      | Contains `cmd_index` for rebuilding the entire search index.                                                   |
+| `cmd/tags.sh`       | Contains `cmd_tags` for listing all unique tags and their counts.                                              |
+| `cmd/completion.sh` | Contains `cmd_completion` to generate the dynamic bash completion script.                                      |
+| `cmd/help.sh`       | Contains `cmd_help` to display the usage information.                                                          |
 
 ## Usage
 

@@ -4,47 +4,67 @@ load '../helpers.bash'
 
 setup() {
     setup_test_env
-    
-    # For this test file, we need the add command
-    source "$BATS_TEST_DIRNAME/../../lib/add.sh"
+    source "$BATS_TEST_DIRNAME/../../cmd/add.sh"
 }
 
 teardown() {
     teardown_test_env
 }
 
-@test "cmd_add: creates a new note from input" {
+@test "cmd_add: creates a note from a chosen template with interactive input" {
     # --- Mock Dependencies ---
-    
-    # 1. Mock the _generate_id function to return a predictable ID
-    _generate_id() {
-        echo "test-id"
-    }
-    
-    # 2. Mock the _index_file function to do nothing, isolating this test
-    _index_file() {
-        # In a real test, you might have this write to a log file
-        echo "Mock index called for $1"
-    }
-    
-    # 3. Mock the EDITOR so it doesn't block the test
+    _generate_id() { echo "test-id"; }
+    _index_file() { echo "Mock index called for $1"; }
     mock_editor
 
-    # --- Run Test ---
-    
-    # Pipe the title into the function to simulate user input for `read`
-    echo "My Test Note" | cmd_add
-    
-    # --- Assertions ---
-    
-    local note_path="$ZETTEL_DIR/test-id-my-test-note.md"
+    # Mock fzf to return our chosen template
+    mock_fzf() {
+        echo "meeting"
+    }
+    export -f mock_fzf
+    export FZF="mock_fzf"
 
-    # 1. Check if the note file was created
+    # --- Setup Test Data ---
+    local template_file="$TEMPLATE_DIR/meeting.md"
+    cat > "$template_file" <<'EOF'
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+type: "{{TYPE}}"
+project: "{{PROJECT}}"
+attendees: [{{ATTENDEES}}]
+date: "{{DATE}}"
+---
+# Meeting: {{TITLE}}
+
+Project: {{PROJECT}}
+Attendees: {{ATTENDEES}}
+EOF
+
+    # --- Run Test ---
+    # Pipe the inputs for the interactive prompts into the command
+    # The order matches the discovery of placeholders in the template (alphabetically after pre-filled ones)
+    # Pre-filled: DATE, ID, TYPE
+    # Prompted: ATTENDEES, PROJECT, TITLE
+    printf "%s\n" "Alice, Bob" "My Test Project" "Project Kick-off" | cmd_add
+
+    # --- Assertions ---
+    local note_path="$ZETTEL_DIR/test-id-project-kick-off.md"
     [ -f "$note_path" ]
 
-    # 2. Check if the title was correctly written to the file
-    grep 'title:.*My Test Note' "$note_path"
+    # Get today's date for the assertion
+    local today_iso
+    today_iso=$(date -I)
 
-    # 3. Check if the mock editor was called
-    grep "Edited by mock" "$note_path"
+    # Verify the content has all expected parts
+    grep -q 'id: "test-id"' "$note_path"
+    grep -q 'title: "Project Kick-off"' "$note_path"
+    grep -q 'type: "meeting"' "$note_path"
+    grep -q 'project: "My Test Project"' "$note_path"
+    grep -q 'attendees: \[Alice, Bob\]' "$note_path"
+    grep -q "date: \"$today_iso\"" "$note_path"
+    grep -q '# Meeting: Project Kick-off' "$note_path"
+    grep -q 'Project: My Test Project' "$note_path"
+    grep -q 'Attendees: Alice, Bob' "$note_path"
+    grep -q 'Edited by mock' "$note_path"
 }

@@ -6,7 +6,7 @@ setup() {
     setup_test_env
     
     # Source the command we are testing
-    source "$BATS_TEST_DIRNAME/../../lib/journal.sh"
+    source "$BATS_TEST_DIRNAME/../../cmd/journal.sh"
     
     # Mock dependencies
     mock_editor
@@ -28,8 +28,10 @@ teardown() {
     
     # 1. Mock the date command to return a predictable date
     date() {
-        if [[ "$1" == "-I" ]]; then
+        if [[ "$1" == +'%Y-%m-%d' ]]; then
             echo "2025-10-06"
+        elif [[ "$1" == +"%A, %d %B %Y" ]]; then
+            echo "Monday, 06 October 2025"
         else
             command date "$@"
         fi
@@ -73,7 +75,13 @@ EOF
     
     # 1. Mock the date command
     date() {
-        if [[ "$1" == "-I" ]]; then echo "2025-10-06"; else command date "$@"; fi
+        if [[ "$1" == +'%Y-%m-%d' ]]; then
+            echo "2025-10-06"
+        elif [[ "$1" == +"%A, %d %B %Y" ]]; then
+            echo "Monday, 06 October 2025"
+        else
+            command date "$@"
+        fi
     }
     export -f date
 

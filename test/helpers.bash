@@ -16,7 +16,7 @@ setup_test_env() {
     mkdir -p "$XDG_CONFIG_HOME/zk/templates"
 
     # Source the script we want to test so its functions are available
-    source "$BATS_TEST_DIRNAME/../../lib/common.sh"
+    source "$BATS_TEST_DIRNAME/../../lib/libzk.sh"
 }
 
 # Cleans up the temporary environment after a test
