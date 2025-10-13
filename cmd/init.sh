@@ -26,14 +26,14 @@ function cmd_init() {
     local config_dir
     config_dir=$(dirname "$ZK_CONFIG_FILE")
     mkdir -p "$config_dir"
-    
+
     # MODIFIED: Also create the template directory inside the config folder
     mkdir -p "$ZK_TEMPLATE_DIR"
     echo "Created templates directory at '$ZK_TEMPLATE_DIR'."
 
     if [ ! -f "$ZK_CONFIG_FILE" ]; then
         # MODIFIED: Added ZK_TEMPLATE_DIR to the default config file.
-        cat > "$ZK_CONFIG_FILE" <<EOF
+        cat >"$ZK_CONFIG_FILE" <<EOF
 # --- ZK Configuration File ---
 # This file is sourced by the 'zk' script to set user preferences.
 # Uncomment and edit the lines below to override the defaults.
@@ -41,13 +41,14 @@ function cmd_init() {
 # The root directory for your Zettelkasten.
 # export ZETTEL_DIR="\$HOME/.zettelkasten"
 
-# Your preferred text editor.
+# Your preferred text editor. If this is not set in .bashrc, or if wanting
+# to use a different editor.
 # export EDITOR="vim"
 
 # --- Directory Paths ---
 
 # Directory for daily journal entries (relative to ZETTEL_DIR).
-# export ZK_JOURNAL_DIR="journal/daily"
+# export ZK_JOURNAL_DIR="journal"
 
 # Directory for saved bookmarks (relative to ZETTEL_DIR).
 # export ZK_BOOKMARK_DIR="resources/bookmarks"

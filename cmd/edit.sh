@@ -7,7 +7,7 @@ function _help() {
 function cmd_edit() {
     # Use 'find' to get a list of all notes, then pipe to 'fzf' for selection.
     local file_to_edit
-    file_to_edit=$(${FIND} "$ZETTEL_DIR" -name "*.md" -type f | ${FZF} --preview "${CAT} {}")
+    file_to_edit=$(${FIND} "$ZETTEL_DIR" -name "*.md" -type f | ${FZF} --ansi --preview "${BAT} --style=full --color=always --theme=base16 {}" --preview-window 'up,60%,border-bottom')
 
     # If a file was selected, open it in the editor and re-index it upon closing.
     if [ -n "$file_to_edit" ]; then

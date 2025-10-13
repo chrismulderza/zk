@@ -34,7 +34,7 @@ function cmd_query() {
     # MODIFIED: Handle relative paths returned from the database.
     # The fzf preview must construct an absolute path.
     local choice
-    choice=$(echo "$results" | ${FZF} --preview "${BAT} $ZETTEL_DIR/{}")
+    choice=$(echo "$results" | ${FZF} --ansi --preview "${BAT} --style=full --color=always --theme=base16 $ZETTEL_DIR/{}" --preview-window 'up,60%,border-bottom')
 
     if [ -n "$choice" ]; then
         # Reconstruct the absolute path before opening or re-indexing the file.

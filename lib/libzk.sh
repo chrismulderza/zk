@@ -4,8 +4,8 @@
 
 # --- CONFIGURATION DEFAULTS ---
 : "${ZETTEL_DIR:="$HOME/.zettelkasten"}"
-: "${EDITOR:="vim"}"
-: "${ZK_JOURNAL_DIR:="journal/daily"}"
+: "${EDITOR:="nvim"}"
+: "${ZK_JOURNAL_DIR:="journal"}"
 : "${ZK_BOOKMARK_DIR:="resources/bookmarks"}"
 : "${XDG_CONFIG_HOME:="$HOME/.config"}"
 : "${ZK_TEMPLATE_DIR:="$XDG_CONFIG_HOME/zk/templates"}"
@@ -40,7 +40,7 @@ TEMPLATE_DIR="$ZK_TEMPLATE_DIR"
 : "${FZF:="fzf"}"
 : "${RG:="rg"}"
 : "${BAT:="bat"}"
-: "${VIM:="vim"}"
+#: "${VIM:="$EDITOR"}"
 : "${TMUX:="tmux"}"
 
 # Detect stat command (macOS vs Linux)
