@@ -5,7 +5,7 @@ INSTALL_DIR = $(PREFIX)/zk
 BIN_DIR = $(PREFIX)/bin
 COMPLETION_DIR = $(HOME)/.bash_completion.d
 
-.PHONY: install uninstall clean
+.PHONY: install uninstall clean test
 
 install:
 	@echo "Installing zk to $(INSTALL_DIR)..."
@@ -49,3 +49,7 @@ uninstall:
 
 clean:
 	@echo "Nothing to clean (no build artifacts)"
+
+test:
+	@echo "Running unit tests..."
+	@bats test/unit/
