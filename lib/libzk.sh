@@ -68,6 +68,86 @@ function _slugify() { echo "$1" | ${TR} '[:upper:]' '[:lower:]' | ${SED} -e 's/[
 function _title_case() { local i="$1" r=""; for w in $i; do r+="${w^} "; done; echo "${r% }"; }
 function _sed_escape() { echo "$1" | ${SED} -e 's/[\\/&]/\\&/g'; }
 
+function _is_external_uri() {
+    local uri="$1"
+    
+    if [[ "$uri" =~ ^https?:// ]] || \
+       [[ "$uri" =~ ^ftp:// ]] || \
+       [[ "$uri" =~ ^ftps:// ]] || \
+       [[ "$uri" =~ ^mailto: ]] || \
+       [[ "$uri" =~ ^file:// ]] || \
+       [[ "$uri" == /* ]]; then
+        return 0
+    fi
+    return 1
+}
+
+function _calculate_relative_path() {
+    local from_dir="$1"
+    local to_file="$2"
+    
+    from_dir="${from_dir%/}"
+    to_file="${to_file%/}"
+    
+    local from_abs="$from_dir"
+    local to_abs="$to_file"
+    
+    IFS='/' read -ra from_parts <<< "${from_abs#/}"
+    IFS='/' read -ra to_parts <<< "${to_abs#/}"
+    
+    local common=0
+    local max_common=$((${#from_parts[@]} < ${#to_parts[@]} ? ${#from_parts[@]} : ${#to_parts[@]}))
+    
+    for ((i=0; i<max_common; i++)); do
+        if [ "${from_parts[$i]}" = "${to_parts[$i]}" ]; then
+            ((common++))
+        else
+            break
+        fi
+    done
+    
+    local result=""
+    
+    local ups=$((${#from_parts[@]} - common))
+    for ((i=0; i<ups; i++)); do
+        if [ -z "$result" ]; then
+            result=".."
+        else
+            result="$result/.."
+        fi
+    done
+    
+    for ((i=common; i<${#to_parts[@]}; i++)); do
+        if [ -z "$result" ]; then
+            result="${to_parts[$i]}"
+        else
+            result="$result/${to_parts[$i]}"
+        fi
+    done
+    
+    if [ -z "$result" ]; then
+        result="."
+    fi
+    
+    echo "$result"
+}
+
+function _update_link_in_file() {
+    local filepath="$1"
+    local old_link="$2"
+    local new_link="$3"
+    local temp_file="${filepath}.linkupdate.tmp"
+    
+    local old_escaped
+    old_escaped=$(echo "$old_link" | ${SED} 's/[\/&]/\\&/g')
+    local new_escaped
+    new_escaped=$(echo "$new_link" | ${SED} 's/[\/&]/\\&/g')
+    
+    ${SED} "s/]($old_escaped)/]($new_escaped)/g" "$filepath" > "$temp_file" && mv "$temp_file" "$filepath"
+    
+    echo "Updated link in $filepath: $old_link -> $new_link"
+}
+
 function _get_template_placeholders() {
     local template_file="$1"
     ${GREP} -o '{{[A-Z_]*}}' "$template_file" | ${SORT} -u | ${SED} 's/[{}]//g'
@@ -147,6 +227,37 @@ function _extract_frontmatter() {
     done < "$filepath"
 }
 
+function _insert_id_into_frontmatter() {
+    local filepath="$1"
+    local id="$2"
+    local temp_file="${filepath}.tmp"
+    
+    if [ ! -f "$filepath" ]; then
+        echo "Error: File not found: $filepath" >&2
+        return 1
+    fi
+    
+    local first_line
+    first_line=$(${HEAD} -1 "$filepath")
+    
+    if [[ "$first_line" == "---" ]]; then
+        ${AWK} -v id="$id" '
+            NR == 1 { print; next }
+            NR == 2 && !inserted { print "id: \"" id "\""; inserted=1 }
+            { print }
+        ' "$filepath" > "$temp_file" && mv "$temp_file" "$filepath"
+    else
+        local original_content
+        original_content=$(${CAT} "$filepath")
+        {
+            echo "---"
+            echo "id: \"$id\""
+            echo "---"
+            echo "$original_content"
+        } > "$temp_file" && mv "$temp_file" "$filepath"
+    fi
+}
+
 function _ensure_initialized() {
     if [ ! -d "$ZETTEL_DIR" ] || [ ! -f "$DB_FILE" ]; then
         echo "Error: Zettelkasten not initialized in '$ZETTEL_DIR'." >&2
@@ -193,7 +304,7 @@ function _update_backlinks_for_note() {
 
     # 2. Query for the current list of backlinks.
     local backlinks
-    backlinks=$(${SQLITE3} "$DB_FILE" "SELECT n.title FROM links l JOIN notes n ON l.source_id = n.id WHERE l.target_id = '$target_id' ORDER BY n.title ASC;")
+    backlinks=$(${SQLITE3} -separator '|' "$DB_FILE" "SELECT n.path, n.title FROM links l JOIN notes n ON l.source_id = n.id WHERE l.target_id = '$target_id' ORDER BY n.title ASC;")
 
     # 3. If backlinks exist, generate and append the new block.
     if [ -n "$backlinks" ]; then
@@ -205,8 +316,12 @@ function _update_backlinks_for_note() {
             echo "## Backlinks"
             (
                 IFS=$'\n'
-                for title in $backlinks; do
-                    echo "- [[$title]]"
+                for backlink_entry in $backlinks; do
+                    local bl_path
+                    bl_path=$(echo "$backlink_entry" | ${CUT} -d'|' -f1)
+                    local bl_title
+                    bl_title=$(echo "$backlink_entry" | ${CUT} -d'|' -f2)
+                    echo "- [$bl_title]($bl_path)"
                 done
             )
             echo "$end_marker"
@@ -225,7 +340,12 @@ function _index_file() {
     _extract_frontmatter "$filepath" frontmatter
 
     local id="${frontmatter[id]}"
-    if [ -z "$id" ]; then echo "Warning: No 'id:' field found in $filepath. Skipping file." >&2; return; fi
+    if [ -z "$id" ]; then
+        id=$(_generate_id)
+        _insert_id_into_frontmatter "$filepath" "$id"
+        echo "Generated and inserted ID '$id' for $filepath"
+        frontmatter[id]="$id"
+    fi
 
     local type="${frontmatter[type]:-note}"
     echo "Indexing: $filepath (ID: $id, Type: $type)"
@@ -266,10 +386,58 @@ EOF
     
     local all_targets; all_targets=$(( ${SED} -n 's/.*\[\[\([^]]*\)\]\].*/\1/p' "$filepath"; ${SED} -n 's/.*](\([^)]*\)).*/\1/p' "$filepath"; ) | ${SORT} -u)
     local new_targets=""
+    local current_dir
+    current_dir=$(dirname "$filepath")
+    
     ( IFS=$'\n'; for raw_target in $all_targets; do
+        if _is_external_uri "$raw_target"; then
+            continue
+        fi
+        
         local target=$(${BASENAME} "$raw_target" .md)
-        # TODO: This is too complicated. Just extract the id from the metadata.
+        local target_path=""
+        
+        if [[ "$raw_target" == /* ]]; then
+            target_path="$raw_target"
+        else
+            target_path="$current_dir/$raw_target"
+        fi
+        
+        if [ ! -f "$target_path" ]; then
+            local found_file
+            found_file=$(${FIND} "$ZETTEL_DIR" -type f -name "*.md" | while read -r potential_file; do
+                local basename_without_id
+                basename_without_id=$(${BASENAME} "$potential_file" .md | ${SED} 's/^[a-f0-9]\{6\}-//')
+                if [ "$basename_without_id" = "$target" ]; then
+                    echo "$potential_file"
+                    break
+                fi
+            done)
+            
+            if [ -n "$found_file" ] && [ -f "$found_file" ]; then
+                target_path="$found_file"
+                local new_relative_path
+                new_relative_path=$(_calculate_relative_path "$current_dir" "$found_file")
+                _update_link_in_file "$filepath" "$raw_target" "$new_relative_path"
+            else
+                continue
+            fi
+        fi
+        
         local target_id=$(${SQLITE3} "$DB_FILE" "SELECT id FROM notes WHERE id = '${target//\'/\'\'}' UNION SELECT id FROM notes WHERE title = '${target//\'/\'\'}' UNION SELECT note_id FROM aliases WHERE alias = '${target//\'/\'\'}' LIMIT 1;")
+        
+        if [ -z "$target_id" ] && [ -f "$target_path" ]; then
+            declare -A target_meta
+            _extract_frontmatter "$target_path" target_meta
+            target_id="${target_meta[id]}"
+            
+            if [ -z "$target_id" ]; then
+                target_id=$(_generate_id)
+                _insert_id_into_frontmatter "$target_path" "$target_id"
+                echo "Generated ID '$target_id' for linked file: $target_path"
+            fi
+        fi
+        
         if [ -n "$target_id" ]; then
             ${SQLITE3} "$DB_FILE" "INSERT OR IGNORE INTO links (source_id, target_id) VALUES ('$id', '$target_id');"
             new_targets+="${target_id}\n"
