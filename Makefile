@@ -17,6 +17,9 @@ install:
 	@cp -f zk $(INSTALL_DIR)/zk
 	@chmod +x $(INSTALL_DIR)/zk
 
+	# Copy command files
+	@cp -r cmd $(INSTALL_DIR)/
+
 	# Copy library files
 	@cp -r lib $(INSTALL_DIR)/
 

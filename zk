@@ -19,7 +19,14 @@ if [ -f "$ZK_CONFIG_FILE" ]; then
 fi
 
 # 4. Find the directory where the script is located to reliably source library files.
-ZK_SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+#    Resolve symlinks to get the actual script location.
+ZK_SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$ZK_SCRIPT_PATH" ]; do
+    ZK_SCRIPT_DIR=$(cd -P -- "$(dirname -- "$ZK_SCRIPT_PATH")" &> /dev/null && pwd)
+    ZK_SCRIPT_PATH=$(readlink "$ZK_SCRIPT_PATH")
+    [[ "$ZK_SCRIPT_PATH" != /* ]] && ZK_SCRIPT_PATH="$ZK_SCRIPT_DIR/$ZK_SCRIPT_PATH"
+done
+ZK_SCRIPT_DIR=$(cd -P -- "$(dirname -- "$ZK_SCRIPT_PATH")" &> /dev/null && pwd)
 
 # 5. Source the shared library of functions and variables.
 #    Defaults are set here, but will not override user settings from config.sh
