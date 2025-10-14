@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(bats test:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
