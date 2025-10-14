@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'index' command.
+#
+
 function _help() {
     echo "index             Rebuild the entire note index from scratch."
 }

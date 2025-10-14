@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'query' command.
+#
+
 function _help() {
-    cat <<'EOF'
+    cat <<'EOM'
 query <type> <term> Search the database index.
   Types:
     -t, --tag       Search by tag.
     -a, --alias     Search by alias.
     --type          Search by note type (e.g., bookmark).
     -f, --fulltext  Perform a full-text search.
-EOF
+EOM
 }
 
 function cmd_query() {

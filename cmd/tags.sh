@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'tags' command.
+#
+
 function _help() {
     echo "tags              List all unique tags and their usage count."
 }

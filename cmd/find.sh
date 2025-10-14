@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'find' command.
+#
+
 function _help() {
     echo "find              Interactively search all note contents."
 }

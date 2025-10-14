@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'add' command.
+#
+
 function _help() {
     echo "add [template]    Create a new note from a template."
 }
@@ -20,7 +24,7 @@ function cmd_add() {
         if [ -z "$templates" ]; then
             echo "No templates found in $TEMPLATE_DIR. Creating a default 'note.md'." >&2
             local default_template_file="$TEMPLATE_DIR/note.md"
-            ${CAT} > "$default_template_file" <<'EOF'
+            ${CAT} > "$default_template_file" <<'EOM'
 ---
 id: "{{ID}}"
 title: "{{TITLE}}"
@@ -30,7 +34,7 @@ tags: []
 date: "{{DATE}}"
 ---
 # {{TITLE}}
-EOF
+EOM
             template_file="$default_template_file"
         else
             local chosen_template

@@ -34,3 +34,4 @@ local.config.sh
 .gemini/
 .cursor/
 .copilot/
+.claude/

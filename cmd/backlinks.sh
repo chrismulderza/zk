@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'backlinks' command.
+#
+
 function _help() {
     echo "backlinks         Interactively find all backlinks for a given note."
 }

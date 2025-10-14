@@ -4,6 +4,12 @@
 
 `zk` is a Zettelkasten and journaling tool that embraces the Unix philosophy. It uses standard, widely available command-line tools to create a fast, portable, and future-proof knowledge base. All your notes are stored as local Markdown files, ensuring you always own your data.
 
+## Motivation
+
+I wanted a portable system that will work across different systems. There are a
+number of tools like [Obsidian](https://obsidian.md) or [zk-org](https://zk-org.github.io),
+but they don't satisfy my goals.
+
 ## Overview
 
 This project provides a single script, `zk`, that acts as a complete interface for your knowledge base. It is designed for developers, writers, and thinkers who are comfortable in the terminal and prefer the power and simplicity of text-based tools.
@@ -141,8 +147,7 @@ zk/
 ├── zettel.db            # The SQLite index database.
 ├── 20251004-....md      # Your Zettelkasten notes.
 ├── journal/
-│   └── daily/
-│       └── 2025-10-04.md
+│   └── 2025-10-04.md
 └── resources/
     └── bookmarks/
         └── 20251004-....md
@@ -215,3 +220,7 @@ Below is a summary of all available commands.
 
 - `zk help`
   Displays the help message.
+
+## TODO
+
+See [TODO.md](TODO.md)

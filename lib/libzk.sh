@@ -3,16 +3,25 @@
 # This file contains all shared configurations, variables, and helper functions.
 
 # --- CONFIGURATION DEFAULTS ---
-: "${ZETTEL_DIR:="$HOME/.zettelkasten"}"
+# Note: ZETTEL_DIR is now set in the main 'zk' script.
 : "${EDITOR:="nvim"}"
 : "${ZK_JOURNAL_DIR:="journal"}"
 : "${ZK_BOOKMARK_DIR:="resources/bookmarks"}"
-: "${XDG_CONFIG_HOME:="$HOME/.config"}"
-: "${ZK_TEMPLATE_DIR:="$XDG_CONFIG_HOME/zk/templates"}"
 
 # --- PATH DEFINITIONS ---
-DB_FILE="$ZETTEL_DIR/zettel.db"
-TEMPLATE_DIR="$ZK_TEMPLATE_DIR"
+# These paths are relative to the notebook root (ZETTEL_DIR).
+DB_FILE="$ZETTEL_DIR/.zk/zettel.db"
+
+# Template directory resolution:
+# 1. Prioritize notebook-specific templates.
+# 2. Fall back to global XDG config directory.
+if [ -d "$ZETTEL_DIR/.zk/templates" ]; then
+    TEMPLATE_DIR="$ZETTEL_DIR/.zk/templates"
+else
+    : "${XDG_CONFIG_HOME:="$HOME/.config"}"
+    TEMPLATE_DIR="$XDG_CONFIG_HOME/zk/templates"
+fi
+
 
 # --- EXTERNAL TOOL DEFINITIONS ---
 # Define all external tool commands here for easy testing and overriding
@@ -56,6 +65,14 @@ else
 fi
 
 # --- HELPER FUNCTIONS ---
+
+# Generates a short, unique ID for a new note.
+# The function reads 3 bytes from /dev/urandom, converts them to a hex
+# string, and checks if a note with that ID already exists. It repeats
+# until a unique ID is found.
+#
+# Outputs:
+#   A 6-character unique hexadecimal string.
 function _generate_id() {
     while true; do
         local id; id=$(${HEAD} -c 3 /dev/urandom | ${XXD} -p)
@@ -64,10 +81,58 @@ function _generate_id() {
         fi
     done
 }
-function _slugify() { echo "$1" | ${TR} '[:upper:]' '[:lower:]' | ${SED} -e 's/[^a-zA-Z0-9]/-/g' | ${SED} -e ':a' -e 's/--/-/g' -e 'ta' | ${SED} -e 's/^-//' -e 's/-$//'; }
-function _title_case() { local i="$1" r=""; for w in $i; do r+="${w^} "; done; echo "${r% }"; }
-function _sed_escape() { echo "$1" | ${SED} -e 's/[\\/&]/\\&/g'; }
 
+# Converts a string into a URL-friendly slug.
+# Replaces spaces and special characters with hyphens, converts to
+# lowercase, and removes leading/trailing hyphens.
+#
+# Arguments:
+#   $1: The string to slugify.
+#
+# Outputs:
+#   The slugified string.
+function _slugify() {
+    echo "$1" | \
+    ${TR} '[:upper:]' '[:lower:]' | \
+    ${SED} -e 's/[^a-zA-Z0-9]/-/g' | \
+    ${SED} -e ':a' -e 's/--/-/g' -e 'ta' | \
+    ${SED} -e 's/^-//' -e 's/-$//'
+}
+
+# Converts a string to Title Case.
+#
+# Arguments:
+#   $1: The string to convert.
+#
+# Outputs:
+#   The string in Title Case.
+function _title_case() {
+    local i="$1"
+    local r=""
+    for w in $i; do
+        r+="${w^} "
+    done
+    echo "${r% }"
+}
+
+# Escapes a string for use in a sed replacement pattern.
+#
+# Arguments:
+#   $1: The string to escape.
+#
+# Outputs:
+#   The escaped string.
+function _sed_escape() {
+    echo "$1" | ${SED} -e 's/[\\/&]/\\&/g'
+}
+
+# Checks if a given string is an external URI.
+#
+# Arguments:
+#   $1: The URI to check.
+#
+# Returns:
+#   0 if it's an external URI, 1 otherwise.
 function _is_external_uri() {
     local uri="$1"
     
@@ -82,6 +147,14 @@ function _is_external_uri() {
     return 1
 }
 
+# Calculates the relative path from one directory to another file.
+#
+# Arguments:
+#   $1: The absolute path of the starting directory.
+#   $2: The absolute path of the target file.
+#
+# Outputs:
+#   The relative path from the first argument to the second.
 function _calculate_relative_path() {
     local from_dir="$1"
     local to_file="$2"
@@ -132,6 +205,12 @@ function _calculate_relative_path() {
     echo "$result"
 }
 
+# Updates a Markdown link in a file.
+#
+# Arguments:
+#   $1: The path to the file to update.
+#   $2: The old link target.
+#   $3: The new link target.
 function _update_link_in_file() {
     local filepath="$1"
     local old_link="$2"
@@ -148,11 +227,25 @@ function _update_link_in_file() {
     echo "Updated link in $filepath: $old_link -> $new_link"
 }
 
+# Extracts all unique {{PLACEHOLDER}} variables from a template file.
+#
+# Arguments:
+#   $1: The path to the template file.
+#
+# Outputs:
+#   A newline-separated list of unique placeholder names (without brackets).
 function _get_template_placeholders() {
     local template_file="$1"
     ${GREP} -o '{{[A-Z_]*}}' "$template_file" | ${SORT} -u | ${SED} 's/[{}]//g'
 }
 
+# Processes a template file, replacing placeholders with values from an
+# associative array.
+#
+# Arguments:
+#   $1: The path to the template file.
+#   $2: The path for the output file.
+#   $3: The name of the associative array containing placeholder values.
 function _process_template() {
     local template_file="$1"
     local output_file="$2"
@@ -227,6 +320,12 @@ function _extract_frontmatter() {
     done < "$filepath"
 }
 
+# Inserts an 'id' field into the frontmatter of a note if it doesn't exist.
+# If the file has no frontmatter, it creates it.
+#
+# Arguments:
+#   $1: The path to the note file.
+#   $2: The ID to insert.
 function _insert_id_into_frontmatter() {
     local filepath="$1"
     local id="$2"
@@ -258,26 +357,35 @@ function _insert_id_into_frontmatter() {
     fi
 }
 
+# Ensures that the Zettelkasten has been initialized.
+# Exits with an error if the main directory or database file is not found.
 function _ensure_initialized() {
-    if [ ! -d "$ZETTEL_DIR" ] || [ ! -f "$DB_FILE" ]; then
-        echo "Error: Zettelkasten not initialized in '$ZETTEL_DIR'." >&2
-        echo "Please run 'zk init' to set up your knowledge base." >&2
+    if [ ! -d "$ZETTEL_DIR/.zk" ] || [ ! -f "$DB_FILE" ]; then
+        echo "Error: Notebook not initialized in '$ZETTEL_DIR'." >&2
+        echo "Please run 'zk init' to set up this directory as a notebook." >&2
         exit 1
     fi
 }
 
+# Initializes the SQLite database schema.
+# Creates all necessary tables and indexes if they don't already exist.
 function db_init() {
-    ${SQLITE3} "$DB_FILE" <<'EOF'
+    ${SQLITE3} "$DB_FILE" <<'EOM'
 CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, title TEXT NOT NULL, type TEXT, path TEXT NOT NULL UNIQUE, modified_at INTEGER);
 CREATE TABLE IF NOT EXISTS tags (note_id TEXT, tag TEXT, PRIMARY KEY (note_id, tag), FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS aliases (note_id TEXT, alias TEXT, PRIMARY KEY (note_id, alias), FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE);
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(note_id UNINDEXED, content, tokenize = 'porter unicode61');
 CREATE TABLE IF NOT EXISTS links (source_id TEXT, target_id TEXT, PRIMARY KEY (source_id, target_id), FOREIGN KEY (source_id) REFERENCES notes(id) ON DELETE CASCADE, FOREIGN KEY (target_id) REFERENCES notes(id) ON DELETE CASCADE);
 CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(type);
-EOF
+EOM
 }
 
-# REWRITTEN: This function is now robust and correctly updates the backlink section.
+# Updates the '## Backlinks' section at the end of a note.
+# It first removes any existing backlink section and then appends a new,
+# updated one based on the current links in the database.
+#
+# Arguments:
+#   $1: The ID of the note to update.
 function _update_backlinks_for_note() {
     local target_id="$1"
     if [ -z "$target_id" ]; then return; fi
@@ -294,8 +402,6 @@ function _update_backlinks_for_note() {
     local temp_file="${target_path}.tmp"
 
     # 1. Remove the old backlink block if it exists.
-    # The awk script prints every line, but sets a flag to skip printing
-    # when it's between the start and end markers. This preserves all original content.
     ${AWK} -v start="$start_marker" -v end="$end_marker" '
         $0 ~ start { in_block = 1; next }
         $0 ~ end   { in_block = 0; next }
@@ -308,7 +414,6 @@ function _update_backlinks_for_note() {
 
     # 3. If backlinks exist, generate and append the new block.
     if [ -n "$backlinks" ]; then
-        # Use a command group with redirection to build the multi-line string.
         local backlink_section
         backlink_section=$(
             echo "" # Ensures a blank line before the block
@@ -326,11 +431,24 @@ function _update_backlinks_for_note() {
             )
             echo "$end_marker"
         )
-        # Append the new, complete block to the file.
         echo "$backlink_section" >> "$target_path"
     fi
 }
 
+# The core indexing function. It parses a note file, extracts metadata,
+# and updates the SQLite database.
+#
+# This function is responsible for:
+# - Extracting frontmatter (ID, title, tags, etc.).
+# - Generating an ID if one doesn't exist.
+# - Updating the 'notes', 'tags', and 'aliases' tables.
+# - Parsing all links and updating the 'links' table.
+# - Updating the full-text search index.
+# - Triggering backlink updates for affected notes.
+#
+# Arguments:
+#   $1: The path to the note file to index.
+#   $2 (optional): Set to "false" to skip updating backlinks. Defaults to "true".
 function _index_file() {
     local filepath="$1"
     local update_backlinks="${2:-true}"
@@ -355,16 +473,9 @@ function _index_file() {
     local aliases_raw="${frontmatter[aliases]:-}"
     local uri="${frontmatter[uri]:-}"
 
-    # Process tags: remove quotes and commas, convert to space-separated
     local tags; tags=$(echo "$tags_raw" | ${SED} 's/"//g; s/,/ /g')
-
-    # Process aliases: remove quotes, convert commas to newlines for iteration
     local aliases; aliases=$(echo "$aliases_raw" | ${SED} 's/"//g' | ${TR} ',' '\n')
-
-    # REVISED: Correctly extract the body by stopping before the backlink block.
-    # This ensures backlink content is not indexed in full-text search.
     local body; body=$(${AWK} 'NR>1 && /---/ {p=0} p; /---/ {p=1}' "$filepath" | ${AWK} '// { exit } 1')
-
     local old_targets; old_targets=$(${SQLITE3} "$DB_FILE" "SELECT target_id FROM links WHERE source_id = '$id'")
     
     local modified_at
@@ -373,14 +484,14 @@ function _index_file() {
     local zettel_dir_with_slash="${ZETTEL_DIR%/}/"
     local relative_path="${filepath#$zettel_dir_with_slash}"
 
-    ${SQLITE3} "$DB_FILE" <<EOF
+    ${SQLITE3} "$DB_FILE" <<EOM
 BEGIN;
 REPLACE INTO notes (id, title, type, path, modified_at) VALUES ('$id', '$title', '$type', '$relative_path', $modified_at);
 DELETE FROM tags WHERE note_id = '$id';
 DELETE FROM aliases WHERE note_id = '$id';
 DELETE FROM links WHERE source_id = '$id';
 COMMIT;
-EOF
+EOM
     for tag in $tags; do ${SQLITE3} "$DB_FILE" "INSERT INTO tags (note_id, tag) VALUES ('$id', '$tag');"; done
     ( IFS=$'\n'; for alias in $aliases; do alias=$(echo "$alias" | ${SED} 's/^[ \t]*//;s/[ \t]*$//'); if [ -n "$alias" ]; then ${SQLITE3} "$DB_FILE" "INSERT INTO aliases (note_id, alias) VALUES ('$id', '${alias//\'/\'\'}');"; fi; done; )
     

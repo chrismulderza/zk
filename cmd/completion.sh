@@ -1,28 +1,39 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'completion' command.
+#
+
 function _help() {
     echo "completion        Generate the bash completion script."
 }
 
 function cmd_completion() {
-    # Expand tilde (~) to the full home directory path for robustness
-    local expanded_template_dir
-    expanded_template_dir=$(${EVAL} echo "$ZK_TEMPLATE_DIR")
-    local expanded_db_file
-    expanded_db_file=$(${EVAL} echo "$DB_FILE")
-
-    # Use a quoted heredoc and pipe to sed for safe substitution of paths.
-    ${CAT} <<'EOF' | ${SED} \
-        -e "s|__ZK_TEMPLATE_DIR__|${expanded_template_dir}|g" \
-        -e "s|__ZK_DB_FILE__|${expanded_db_file}|g"
+    # This command generates a dynamic bash completion script.
+    # The script itself contains the logic to find the active notebook.
+    cat <<'EOM'
 # Bash completion for zk
 #
 # To install, add the following to your .bashrc or .bash_profile:
 #   source <(zk completion)
-#
-# Or, save it to a file and source it:
-#   zk completion > ~/.bash_completion.d/zk
-#   # (and ensure your .bashrc sources files from .bash_completion.d)
+
+_zk_find_notebook_root_for_completion() {
+    local dir
+    if [ -n "${ZETTEL_DIR:-}" ]; then
+        echo "$ZETTEL_DIR"
+        return 0
+    fi
+    
+    dir=$(pwd)
+    while [ "$dir" != "/" ]; do
+        if [ -d "$dir/.zk" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+    echo "$HOME/.zk"
+}
 
 _zk_completions() {
     local cur prev words cword
@@ -30,24 +41,29 @@ _zk_completions() {
 
     local commands="init add journal bookmark tags edit find query index help completion backlinks"
 
-    # Completion for the main command (first word)
     if [ "${cword}" -eq 1 ]; then
         COMPREPLY=( $(compgen -W "${commands}" -- "${cur}") )
         return 0
     fi
 
     local command="${words[1]}"
+    local notebook_root
+    notebook_root=$(_zk_find_notebook_root_for_completion)
+    
     case "${command}" in
         add)
-            # Complete template names for the 'add' command
-            local template_dir="__ZK_TEMPLATE_DIR__"
+            local template_dir="$notebook_root/.zk/templates"
+            if [ ! -d "$template_dir" ]; then
+                : "${XDG_CONFIG_HOME:="$HOME/.config"}"
+                template_dir="$XDG_CONFIG_HOME/zk/templates"
+            fi
+            
             if [ -d "${template_dir}" ]; then
                 local templates=$(ls -1 "${template_dir}" 2>/dev/null | sed 's/\.md$//')
                 COMPREPLY=( $(compgen -W "${templates}" -- "${cur}") )
             fi
             ;;
         query)
-            # Complete options for the 'query' command
             if [ "${cword}" -eq 2 ]; then
                 local query_opts="--tag --alias --type --fulltext"
                 COMPREPLY=( $(compgen -W "${query_opts}" -- "${cur}") )
@@ -55,14 +71,9 @@ _zk_completions() {
             fi
 
             local query_opt="${words[2]}"
-            # Complete values for the query options
             if [ "${cword}" -eq 3 ]; then
-                local db_file="__ZK_DB_FILE__"
-                
-                # Only attempt to query the DB if it exists
-                if [ ! -f "${db_file}" ]; then
-                    return 0
-                fi
+                local db_file="$notebook_root/.zk/zettel.db"
+                if [ ! -f "${db_file}" ]; then return 0; fi
 
                 case "${query_opt}" in
                     --tag|-t)
@@ -70,7 +81,6 @@ _zk_completions() {
                         COMPREPLY=( $(compgen -W "${tags}" -- "${cur}") )
                         ;;
                     --alias|-a)
-                        # Read aliases line by line to handle spaces correctly
                         local aliases
                         mapfile -t aliases < <(sqlite3 "${db_file}" "SELECT DISTINCT alias FROM aliases ORDER BY alias")
                         COMPREPLY=( $(compgen -W "$(printf "'%s' " "${aliases[@]}")" -- "${cur}") )
@@ -86,6 +96,5 @@ _zk_completions() {
 }
 
 complete -F _zk_completions zk
-
-EOF
+EOM
 }

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'journal' command.
+#
+
 function _help() {
     echo "journal           Create or open today's daily journal note."
 }
@@ -14,7 +18,7 @@ function cmd_journal() {
         echo "Creating today's journal entry: $note_path"
         local template_file="$TEMPLATE_DIR/journal_daily.md"
         if [ ! -f "$template_file" ]; then
-            ${CAT} >"$template_file" <<'EOF'
+            ${CAT} >"$template_file" <<'EOM'
 ---
 id: "{{ID}}"
 title: "{{TITLE}}"
@@ -27,7 +31,7 @@ date: "{{DATE}}"
 ## Key Events of the Day
 ## Thoughts & Reflections
 ## Today I'm Grateful For
-EOF
+EOM
             echo "Created default journal template at $template_file"
         fi
 

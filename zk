@@ -2,24 +2,67 @@
 
 set -euo pipefail
 
+# --- NOTEBOOK DISCOVERY ---
+
+# Finds the root directory of the Zettelkasten notebook.
+# The root is identified by the presence of a '.zk' subdirectory.
+# The search starts from the current directory and moves upwards.
+#
+# The resolution order is:
+# 1. Use the value of the ZETTEL_DIR environment variable if set.
+# 2. Search upwards from the current directory for a '.zk' directory.
+# 3. Fall back to the default directory '~/.zk'.
+#
+# Outputs:
+#   Exports the ZETTEL_DIR environment variable pointing to the notebook root.
+function _find_notebook_root() {
+    if [ -n "${ZETTEL_DIR:-}" ]; then
+        if [ ! -d "$ZETTEL_DIR" ]; then
+            echo "Error: ZETTEL_DIR is set to '$ZETTEL_DIR', but it is not a directory." >&2
+            exit 1
+        fi
+    else
+        local current_dir
+        current_dir=$(pwd)
+        while [ "$current_dir" != "/" ]; do
+            if [ -d "$current_dir/.zk" ]; then
+                ZETTEL_DIR="$current_dir"
+                break
+            fi
+            current_dir=$(dirname "$current_dir")
+        done
+
+        if [ -z "${ZETTEL_DIR:-}" ]; then
+            ZETTEL_DIR="$HOME/.zk"
+        fi
+    fi
+    export ZETTEL_DIR
+}
+
+_find_notebook_root
+
 # --- CONFIGURATION SOURCING ---
 
-# 1. Define the default config file location based on XDG standards.
+# 1. Define the default global config file location based on XDG standards.
 : "${XDG_CONFIG_HOME:="$HOME/.config"}"
 DEFAULT_ZK_CONFIG_FILE="$XDG_CONFIG_HOME/zk/config.sh"
 
-# 2. Determine the config file to use. Prioritize the ZK_CONFIG environment
-#    variable if it is set by the user; otherwise, use the default path.
+# 2. Determine the global config file to use. Prioritize ZK_CONFIG env var.
 ZK_CONFIG_FILE="${ZK_CONFIG:-$DEFAULT_ZK_CONFIG_FILE}"
 
-# 3. Source the user's configuration file if it exists at the determined path.
-#    This allows user settings to be available before loading defaults.
+# 3. Source the global configuration file if it exists.
 if [ -f "$ZK_CONFIG_FILE" ]; then
     source "$ZK_CONFIG_FILE"
 fi
 
-# 4. Find the directory where the script is located to reliably source library files.
-#    Resolve symlinks to get the actual script location.
+# 4. Source the notebook-specific configuration file if it exists.
+#    This allows notebook-level settings to override global ones.
+NOTEBOOK_CONFIG_FILE="$ZETTEL_DIR/.zk/config.sh"
+if [ -f "$NOTEBOOK_CONFIG_FILE" ]; then
+    source "$NOTEBOOK_CONFIG_FILE"
+fi
+
+# 5. Find the directory where the script is located to reliably source library files.
 ZK_SCRIPT_PATH="${BASH_SOURCE[0]}"
 while [ -L "$ZK_SCRIPT_PATH" ]; do
     ZK_SCRIPT_DIR=$(cd -P -- "$(dirname -- "$ZK_SCRIPT_PATH")" &> /dev/null && pwd)
@@ -28,8 +71,7 @@ while [ -L "$ZK_SCRIPT_PATH" ]; do
 done
 ZK_SCRIPT_DIR=$(cd -P -- "$(dirname -- "$ZK_SCRIPT_PATH")" &> /dev/null && pwd)
 
-# 5. Source the shared library of functions and variables.
-#    Defaults are set here, but will not override user settings from config.sh
+# 6. Source the shared library of functions and variables.
 source "$ZK_SCRIPT_DIR/lib/libzk.sh"
 
 
@@ -40,7 +82,7 @@ shift || true
 case "$COMMAND" in
     init)
         source "$ZK_SCRIPT_DIR/cmd/init.sh"
-        cmd_init
+        cmd_init "$@"
         ;;
     add)
         _ensure_initialized

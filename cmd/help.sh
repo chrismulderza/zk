@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'help' command.
+#
+
 function _help() {
     echo "help              Show this help message."
 }
 
 function cmd_help() {
-    cat <<'EOF'
+    cat <<'EOM'
 zk - A Zettelkasten and Journaling CLI tool
 
 Usage: zk <command> [options]
 
 Commands:
-EOF
+EOM
 
     local cmd_dir
     cmd_dir=$(dirname "${BASH_SOURCE[0]}")

@@ -12,7 +12,7 @@ setup_test_env() {
     export XDG_CONFIG_HOME="$ZK_TEST_HOME/config"
 
     # Create the necessary base directories
-    mkdir -p "$ZETTEL_DIR"
+    mkdir -p "$ZETTEL_DIR/.zk"
     mkdir -p "$XDG_CONFIG_HOME/zk/templates"
 
     # Source the script we want to test so its functions are available

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'bookmark' command.
+#
+
 function _help() {
     echo "bookmark          Interactively capture a new bookmark."
 }
@@ -9,7 +13,7 @@ function cmd_bookmark() {
     local template_file="$TEMPLATE_DIR/bookmark.md"; echo "Capturing a new bookmark..."
 
     if [ ! -f "$template_file" ]; then
-        ${CAT} > "$template_file" <<'EOF'
+        ${CAT} > "$template_file" <<'EOM'
 ---
 id: "{{ID}}"
 title: "{{TITLE}}"
@@ -28,7 +32,7 @@ date: "{{DATE}}"
 
 {{DESCRIPTION}}
 
-EOF
+EOM
         echo "Created default bookmark template at $template_file"
     fi
 

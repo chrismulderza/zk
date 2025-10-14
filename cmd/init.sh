@@ -1,64 +1,72 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'init' command.
+#
+
 function _help() {
-    echo "init              Initialize the Zettelkasten directory and database."
+    echo "init [dir]        Initialize a new notebook in the given directory (or current dir)."
 }
 
 function cmd_init() {
-    if [ -d "$ZETTEL_DIR" ] && [ -f "$DB_FILE" ]; then
-        echo "Zettelkasten already initialized at '$ZETTEL_DIR'."
+    local init_dir="${1:-.}"
+    
+    # If a directory is specified, use its absolute path.
+    if [ "$init_dir" != "." ]; then
+        mkdir -p "$init_dir"
+        ZETTEL_DIR=$(cd "$init_dir" && pwd)
+    else
+        ZETTEL_DIR=$(pwd)
+    fi
+
+    if [ -d "$ZETTEL_DIR/.zk" ]; then
+        echo "Notebook already initialized at '$ZETTEL_DIR'."
         return
     fi
 
-    echo "Initializing Zettelkasten at '$ZETTEL_DIR'..."
-    # Create the main data directories
-    mkdir -p "$ZETTEL_DIR"
+    echo "Initializing new notebook at '$ZETTEL_DIR'..."
+    
+    # Create the core '.zk' hidden directory.
+    mkdir -p "$ZETTEL_DIR/.zk"
+    
+    # Create the main data directories in the notebook root.
     mkdir -p "$ZETTEL_DIR/$ZK_JOURNAL_DIR"
     mkdir -p "$ZETTEL_DIR/$ZK_BOOKMARK_DIR"
     echo "Created data directory structure in '$ZETTEL_DIR'."
 
-    # Create the database file
+    # Define the DB file path now that ZETTEL_DIR is confirmed.
+    DB_FILE="$ZETTEL_DIR/.zk/zettel.db"
+    
+    # Create and initialize the database.
     touch "$DB_FILE"
     db_init
     echo "Database initialized at '$DB_FILE'."
 
-    # Create the configuration directory and default config file
-    local config_dir
-    config_dir=$(dirname "$ZK_CONFIG_FILE")
-    mkdir -p "$config_dir"
+    # Create notebook-specific templates and config directories.
+    mkdir -p "$ZETTEL_DIR/.zk/templates"
+    echo "Created local templates directory at '$ZETTEL_DIR/.zk/templates'."
 
-    # MODIFIED: Also create the template directory inside the config folder
-    mkdir -p "$ZK_TEMPLATE_DIR"
-    echo "Created templates directory at '$ZK_TEMPLATE_DIR'."
+    local notebook_config_file="$ZETTEL_DIR/.zk/config.sh"
+    if [ ! -f "$notebook_config_file" ]; then
+        cat >"$notebook_config_file" <<EOM
+# --- Notebook Configuration File ---
+# This file is sourced by 'zk' to set notebook-specific preferences.
+# Settings here will override your global settings in ~/.config/zk/config.sh.
 
-    if [ ! -f "$ZK_CONFIG_FILE" ]; then
-        # MODIFIED: Added ZK_TEMPLATE_DIR to the default config file.
-        cat >"$ZK_CONFIG_FILE" <<EOF
-# --- ZK Configuration File ---
-# This file is sourced by the 'zk' script to set user preferences.
-# Uncomment and edit the lines below to override the defaults.
-
-# The root directory for your Zettelkasten.
-# export ZETTEL_DIR="\$HOME/.zettelkasten"
-
-# Your preferred text editor. If this is not set in .bashrc, or if wanting
-# to use a different editor.
+# Your preferred text editor for this notebook.
 # export EDITOR="vim"
 
-# --- Directory Paths ---
+# --- Directory Paths (relative to notebook root) ---
 
-# Directory for daily journal entries (relative to ZETTEL_DIR).
+# Directory for daily journal entries.
 # export ZK_JOURNAL_DIR="journal"
 
-# Directory for saved bookmarks (relative to ZETTEL_DIR).
+# Directory for saved bookmarks.
 # export ZK_BOOKMARK_DIR="resources/bookmarks"
-
-# Absolute path to the directory for note templates.
-# export ZK_TEMPLATE_DIR="\$XDG_CONFIG_HOME/zk/templates"
-EOF
-        echo "Created default configuration file at '$ZK_CONFIG_FILE'."
-        echo "You can edit this file to customize zk's behavior."
+EOM
+        echo "Created notebook configuration file at '$notebook_config_file'."
     fi
+    
     echo ""
-    echo "Initialization complete. You can now start using zk commands."
+    echo "Initialization complete. You can now use zk commands in this directory."
 }

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Contains the implementation for the 'edit' command.
+#
+
 function _help() {
     echo "edit              Find any note with fzf and edit it."
 }
