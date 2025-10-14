@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Pre-commit hook that runs all tests before allowing a commit.
+
+echo "Running pre-commit hook..."
+
+# Run tests
+if ! bats test/; then
+    echo "Tests failed. Aborting commit." >&2
+    exit 1
+fi
+
+echo "All checks passed. Proceeding with commit."
+exit 0
