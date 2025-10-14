@@ -35,3 +35,4 @@ local.config.sh
 .cursor/
 .copilot/
 .claude/
+.claude/settings.local.json
