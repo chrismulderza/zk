@@ -4,7 +4,16 @@ List of outstanding bugs/issues and/or features to be added to this project.
 
 ## BUGS/ISSUES
 
+- Indexing
+  - [x] Do not index the `.zk` directory in the notebook
+- Adding new note
+  - [ ] User is prompted to enter the default alias. Default alias should be
+        constructed using "Type> Title" convention.
+
 ## FEATURES
+
+- Improvements
+  - [ ] Make `zk add` handle STDIN and setting metadata using flags
 
 - Templating
   - [ ] Improve template processing so that the template can describe a default
@@ -18,6 +27,12 @@ List of outstanding bugs/issues and/or features to be added to this project.
 - Contact Management
 
 - Bookmark Handling
+
+- Integration
+  - vim/nvim
+    - [ ] Investigate autocommands or scripts to easily insert links
+  - tmux
+    - Popup/menu helpers to quickly create items
 
 ## ROADMAP
 
