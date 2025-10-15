@@ -806,7 +806,7 @@ function _strip_id_prefix_from_basename() {
 function _find_file_by_basename() {
     local target="$1"
 
-    ${FIND} "$ZETTEL_DIR" -type f -name "*.md" | while read -r potential_file; do
+    ${FIND} "$ZETTEL_DIR" \( -name ".zk" -prune \) -o \( -type f -name "*.md" -print \) | while read -r potential_file; do
         local basename_without_id
         basename_without_id=$(_strip_id_prefix_from_basename "$potential_file")
         if [ "$basename_without_id" = "$target" ]; then
