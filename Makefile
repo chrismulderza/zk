@@ -18,7 +18,22 @@ install: ## Install zk to the local system
 	@mkdir -p $(INSTALL_DIR)
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(COMPLETION_DIR)
-	@cp -f zk $(INSTALL_DIR)/zk
+	@# Check if we're ahead of the latest tag and append -dev if so
+	@if command -v git >/dev/null 2>&1 && [ -d .git ]; then \
+		LATEST_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
+		if [ -n "$$LATEST_TAG" ]; then \
+			COMMITS_AHEAD=$$(git rev-list "$$LATEST_TAG..HEAD" --count 2>/dev/null || echo "0"); \
+			if [ "$$COMMITS_AHEAD" -gt 0 ]; then \
+				sed "s/^ZK_VERSION=\"\(.*\)\"/ZK_VERSION=\"\1-dev\"/" zk > $(INSTALL_DIR)/zk; \
+			else \
+				cp -f zk $(INSTALL_DIR)/zk; \
+			fi; \
+		else \
+			cp -f zk $(INSTALL_DIR)/zk; \
+		fi; \
+	else \
+		cp -f zk $(INSTALL_DIR)/zk; \
+	fi
 	@chmod +x $(INSTALL_DIR)/zk
 	@cp -r cmd $(INSTALL_DIR)/
 	@cp -r lib $(INSTALL_DIR)/
