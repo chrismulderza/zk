@@ -17,6 +17,9 @@ setup_test_env() {
 
     # Source the script we want to test so its functions are available
     source "$BATS_TEST_DIRNAME/../../lib/libzk.sh"
+
+    # Initialize the database for the test environment
+    db_init
 }
 
 # Cleans up the temporary environment after a test
@@ -33,3 +36,4 @@ mock_editor() {
     }
     export -f mock_editor_func
 }
+
