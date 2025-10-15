@@ -43,6 +43,18 @@ main() {
 
     local new_version="$major.$minor.$patch"
     echo "$new_version" > VERSION
+    
+    # Update the ZK_VERSION variable in the zk script
+    if [ -f "zk" ]; then
+        # Use sed to replace the version line
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' "s/^ZK_VERSION=\".*\"/ZK_VERSION=\"$new_version\"/" zk
+        else
+            sed -i "s/^ZK_VERSION=\".*\"/ZK_VERSION=\"$new_version\"/" zk
+        fi
+        echo "Updated zk script to version $new_version"
+    fi
+    
     echo "Version bumped to $new_version"
 }
 

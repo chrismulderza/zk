@@ -55,7 +55,7 @@ release-patch: ## Bump patch version, commit, and tag
 	@./scripts/version.sh patch
 	$(eval NEW_VERSION = v$(shell cat VERSION))
 	@./scripts/update_changelog.sh $(NEW_VERSION)
-	@git add VERSION CHANGELOG.md
+	@git add VERSION CHANGELOG.md zk
 	@git commit -m "chore: bump version to $(NEW_VERSION)"
 	@git tag -a "$(NEW_VERSION)" -m "Release $(NEW_VERSION)"
 	@echo "Created new tag $(NEW_VERSION)"
@@ -64,7 +64,7 @@ release-minor: ## Bump minor version, commit, and tag
 	@./scripts/version.sh minor
 	$(eval NEW_VERSION = v$(shell cat VERSION))
 	@./scripts/update_changelog.sh $(NEW_VERSION)
-	@git add VERSION CHANGELOG.md
+	@git add VERSION CHANGELOG.md zk
 	@git commit -m "chore: bump version to $(NEW_VERSION)"
 	@git tag -a "$(NEW_VERSION)" -m "Release $(NEW_VERSION)"
 	@echo "Created new tag $(NEW_VERSION)"
@@ -73,7 +73,7 @@ release-major: ## Bump major version, commit, and tag
 	@./scripts/version.sh major
 	$(eval NEW_VERSION = v$(shell cat VERSION))
 	@./scripts/update_changelog.sh $(NEW_VERSION)
-	@git add VERSION CHANGELOG.md
+	@git add VERSION CHANGELOG.md zk
 	@git commit -m "chore: bump version to $(NEW_VERSION)"
 	@git tag -a "$(NEW_VERSION)" -m "Release $(NEW_VERSION)"
 	@echo "Created new tag $(NEW_VERSION)"

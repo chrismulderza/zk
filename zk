@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# --- VERSION ---
+ZK_VERSION="0.1.1"
+
 # --- NOTEBOOK DISCOVERY ---
 
 # Finds the root directory of the Zettelkasten notebook.
@@ -74,6 +77,29 @@ ZK_SCRIPT_DIR=$(cd -P -- "$(dirname -- "$ZK_SCRIPT_PATH")" &> /dev/null && pwd)
 # 6. Source the shared library of functions and variables.
 source "$ZK_SCRIPT_DIR/lib/libzk.sh"
 
+# --- VERSION DISPLAY ---
+function _show_version() {
+    local version="$ZK_VERSION"
+    
+    # Check if we're in a git repository and have commits ahead of the latest tag
+    if command -v git &>/dev/null && [ -d "$ZK_SCRIPT_DIR/.git" ]; then
+        # Get the latest tag
+        local latest_tag
+        latest_tag=$(git -C "$ZK_SCRIPT_DIR" describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -n "$latest_tag" ]; then
+            # Check if there are commits after the tag
+            local commits_ahead
+            commits_ahead=$(git -C "$ZK_SCRIPT_DIR" rev-list "${latest_tag}..HEAD" --count 2>/dev/null || echo "0")
+            
+            if [ "$commits_ahead" -gt 0 ]; then
+                version="${version}-dev"
+            fi
+        fi
+    fi
+    
+    echo "zk version $version"
+}
 
 # --- MAIN COMMAND ROUTER ---
 COMMAND="${1:-find}"
@@ -136,6 +162,9 @@ case "$COMMAND" in
     help|--help|-h)
         source "$ZK_SCRIPT_DIR/cmd/help.sh"
         cmd_help
+        ;;
+    version|--version|-v)
+        _show_version
         ;;
     *)
         echo "Error: Unknown command '$COMMAND'" >&2
