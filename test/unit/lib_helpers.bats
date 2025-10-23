@@ -244,3 +244,157 @@ EOF
     run _has_frontmatter "$test_file"
     [ "$status" -eq 1 ]
 }
+
+@test "_extract_template_config: extracts output_dir and filename_format" {
+    local template_file="$BATS_TEST_TMPDIR/template_with_config.md"
+    cat > "$template_file" <<'EOF'
+---
+config:
+  output_dir: "meetings"
+  filename_format: "date-title-id"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+---
+EOF
+    
+    declare -A config
+    _extract_template_config "$template_file" config
+    
+    [[ "${config[output_dir]}" == "meetings" ]]
+    [[ "${config[filename_format]}" == "date-title-id" ]]
+}
+
+@test "_extract_template_config: handles missing config section" {
+    local template_file="$BATS_TEST_TMPDIR/template_no_config.md"
+    cat > "$template_file" <<'EOF'
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+---
+EOF
+    
+    declare -A config
+    _extract_template_config "$template_file" config
+    
+    [[ -z "${config[output_dir]:-}" ]]
+    [[ -z "${config[filename_format]:-}" ]]
+}
+
+@test "_extract_template_config: handles config with quoted values" {
+    local template_file="$BATS_TEST_TMPDIR/template_quoted.md"
+    cat > "$template_file" <<'EOF'
+---
+config:
+  output_dir: "my/nested/path"
+  filename_format: "date-title"
+---
+id: "{{ID}}"
+---
+EOF
+    
+    declare -A config
+    _extract_template_config "$template_file" config
+    
+    [[ "${config[output_dir]}" == "my/nested/path" ]]
+    [[ "${config[filename_format]}" == "date-title" ]]
+}
+
+@test "_generate_filename: date-title-id format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "date-title-id" data)
+    
+    [[ "$result" == "2025-10-15-my-test-note-abc123" ]]
+}
+
+@test "_generate_filename: id-title format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "id-title" data)
+    
+    [[ "$result" == "abc123-my-test-note" ]]
+}
+
+@test "_generate_filename: date-title format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "date-title" data)
+    
+    [[ "$result" == "2025-10-15-my-test-note" ]]
+}
+
+@test "_generate_filename: date format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "date" data)
+    
+    [[ "$result" == "2025-10-15" ]]
+}
+
+@test "_generate_filename: title format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "title" data)
+    
+    [[ "$result" == "my-test-note" ]]
+}
+
+@test "_generate_filename: id format" {
+    declare -A data
+    data[DATE]="2025-10-15"
+    data[TITLE]="My Test Note"
+    data[ID]="abc123"
+    
+    local result
+    result=$(_generate_filename "id" data)
+    
+    [[ "$result" == "abc123" ]]
+}
+
+@test "_get_template_placeholders: excludes config section" {
+    local template_file="$BATS_TEST_TMPDIR/template_with_config.md"
+    cat > "$template_file" <<'EOF'
+---
+config:
+  output_dir: "meetings"
+  filename_format: "date-title-id"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+project: "{{PROJECT}}"
+---
+# {{TITLE}}
+EOF
+    
+    local result
+    result=$(_get_template_placeholders "$template_file")
+    
+    echo "$result" | grep -q "ID"
+    echo "$result" | grep -q "TITLE"
+    echo "$result" | grep -q "PROJECT"
+    
+    # Should NOT contain config keys
+    ! echo "$result" | grep -q "output_dir"
+    ! echo "$result" | grep -q "filename_format"
+}

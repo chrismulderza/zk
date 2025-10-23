@@ -221,6 +221,199 @@ Below is a summary of all available commands.
 - `zk help`
   Displays the help message.
 
+## Template System
+
+The `zk add` command uses a flexible template system that allows you to customize how notes are created. Templates are stored in `~/.config/zk/templates/` (or `$ZETTEL_DIR/.zk/templates/` for notebook-specific templates).
+
+### Basic Template Structure
+
+Templates are Markdown files with YAML frontmatter. Placeholders in the format `{{PLACEHOLDER}}` are replaced with actual values when creating a note.
+
+**Example: Simple Note Template** (`~/.config/zk/templates/note.md`):
+```yaml
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+type: "note"
+tags: []
+date: "{{DATE}}"
+---
+# {{TITLE}}
+```
+
+### Available Placeholders
+
+The following placeholders are automatically filled:
+
+- `{{ID}}` - Auto-generated 6-character hex ID
+- `{{DATE}}` - Current date in ISO format (YYYY-MM-DD)
+- `{{TYPE}}` - Template name (e.g., "note", "meeting", "project")
+
+Any other placeholders will prompt the user for input. For example, `{{PROJECT}}` will prompt "Enter project:".
+
+### Template Configuration
+
+Templates can include a special `config` section to control note creation behavior:
+
+```yaml
+---
+config:
+  output_dir: "meetings"
+  filename_format: "date-title-id"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+type: "meeting"
+---
+```
+
+#### Configuration Options
+
+**`output_dir`** (optional)
+- Specifies a subdirectory within your notebook where notes are stored
+- Example: `"meetings"` creates notes in `$ZETTEL_DIR/meetings/`
+- Supports nested paths: `"projects/active"`
+- If omitted, notes are created in the root notebook directory
+
+**`filename_format`** (optional)
+- Defines the pattern for generating filenames
+- If omitted, defaults to `"id-title"`
+
+**Supported filename formats:**
+- `id-title` - `abc123-my-note.md` (default)
+- `date-title-id` - `2025-10-15-my-note-abc123.md`
+- `date-title` - `2025-10-15-my-note.md`
+- `title-id` - `my-note-abc123.md`
+- `date-id` - `2025-10-15-abc123.md`
+- `date` - `2025-10-15.md`
+- `title` - `my-note.md`
+- `id` - `abc123.md`
+
+### Example Templates
+
+**Meeting Notes** (`~/.config/zk/templates/meeting.md`):
+```yaml
+---
+config:
+  output_dir: "meetings"
+  filename_format: "date-title-id"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+type: "meeting"
+project: "{{PROJECT}}"
+attendees: [{{ATTENDEES}}]
+date: "{{DATE}}"
+---
+# Meeting: {{TITLE}}
+
+**Project:** {{PROJECT}}  
+**Date:** {{DATE}}  
+**Attendees:** {{ATTENDEES}}
+
+## Agenda
+
+## Notes
+
+## Action Items
+```
+
+Usage: `zk add meeting`
+- Prompts: Title, Attendees, Project
+- Creates: `$ZETTEL_DIR/meetings/2025-10-15-project-kickoff-abc123.md`
+
+**Daily Journal** (`~/.config/zk/templates/journal_daily.md`):
+```yaml
+---
+config:
+  output_dir: "journal"
+  filename_format: "date"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+date: "{{DATE}}"
+---
+# Journal - {{DATE}}
+
+## Morning Thoughts
+
+## Today's Goals
+
+## Evening Reflection
+```
+
+Usage: `zk add journal_daily`
+- Prompts: Title
+- Creates: `$ZETTEL_DIR/journal/2025-10-15.md`
+
+**Project Notes** (`~/.config/zk/templates/project.md`):
+```yaml
+---
+config:
+  output_dir: "projects"
+  filename_format: "title-id"
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+type: "project"
+status: "{{STATUS}}"
+tags: [project]
+date: "{{DATE}}"
+---
+# Project: {{TITLE}}
+
+**Status:** {{STATUS}}  
+**Started:** {{DATE}}
+
+## Overview
+
+## Goals
+
+## Resources
+```
+
+Usage: `zk add project`
+- Prompts: Title, Status
+- Creates: `$ZETTEL_DIR/projects/my-awesome-project-abc123.md`
+
+### Custom Placeholders
+
+Any placeholder not in the auto-filled list will prompt the user for input. Placeholders are prompted in alphabetical order (after TITLE, which is always first).
+
+**Example:**
+```yaml
+---
+id: "{{ID}}"
+title: "{{TITLE}}"
+author: "{{AUTHOR}}"
+book_title: "{{BOOK_TITLE}}"
+---
+```
+
+This prompts:
+1. "Enter title:" (always first)
+2. "Enter author:"
+3. "Enter book title:"
+
+### Template Resolution
+
+When you run `zk add template_name`, the system looks for templates in this order:
+
+1. `$ZETTEL_DIR/.zk/templates/template_name.md` (notebook-specific)
+2. `~/.config/zk/templates/template_name.md` (global)
+
+If no template is found and you specify "note", a default template is created automatically.
+
+### Special Placeholder: DEFAULT_ALIAS
+
+The `{{DEFAULT_ALIAS}}` placeholder is automatically generated if not provided:
+
+```yaml
+aliases: ["{{DEFAULT_ALIAS}}"]
+```
+
+This creates an alias in the format: "Template Name > Title" (e.g., "Meeting > Project Kickoff").
+
 ## TODO
 
 See [TODO.md](TODO.md)
